@@ -183,8 +183,3 @@ left join members_with_claims as w
     and coalesce(s.payer, '') = coalesce(w.payer, '')
     and coalesce(s.plan_name, '') = coalesce(w.plan_name, '')
     and s.year_month_int = w.year_month_int
-order by
-    s.data_source,
-    s.payer,
-    s.plan_name,
-    s.year_month_int

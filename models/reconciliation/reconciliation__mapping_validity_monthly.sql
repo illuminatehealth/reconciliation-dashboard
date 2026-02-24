@@ -472,9 +472,3 @@ select
         / nullif(cast(applicable_claim_lines as {{ dbt.type_numeric() }}), 0) as valid_rate_applicable,
     '{{ var("tuva_last_run", run_started_at.astimezone(modules.pytz.timezone("UTC"))) }}' as tuva_last_run
 from aggregated
-order by
-    data_source,
-    payer,
-    plan_name,
-    field_name,
-    year_month_int
