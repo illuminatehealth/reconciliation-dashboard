@@ -6,7 +6,7 @@ with medical_claim as (
     select
         data_source,
         payer,
-        plan,
+        {{ the_tuva_project.quote_column('plan') }} as plan_name,
         cast(coalesce(claim_line_start_date, claim_start_date) as date) as service_date,
         claim_type,
         drg_code_type,
@@ -34,7 +34,7 @@ pharmacy_claim as (
     select
         data_source,
         payer,
-        plan,
+        {{ the_tuva_project.quote_column('plan') }} as plan_name,
         cast(coalesce(dispensing_date, paid_date) as date) as service_date,
         ndc_code
     from {{ ref('input_layer__pharmacy_claim') }}
@@ -44,7 +44,7 @@ claim_with_month as (
     select
         mc.data_source,
         mc.payer,
-        mc.plan,
+        mc.plan_name,
         c.year_month_int,
         c.year_month,
         mc.claim_type,
@@ -75,7 +75,7 @@ pharmacy_with_month as (
     select
         pc.data_source,
         pc.payer,
-        pc.plan,
+        pc.plan_name,
         c.year_month_int,
         c.year_month,
         pc.ndc_code
@@ -88,7 +88,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'drg_code' as field_name,
@@ -112,7 +112,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'revenue_center_code' as field_name,
@@ -131,7 +131,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'hcpcs_code' as field_name,
@@ -149,7 +149,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'diagnosis_code_1' as field_name,
@@ -167,7 +167,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'diagnosis_code_2' as field_name,
@@ -185,7 +185,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'diagnosis_code_3' as field_name,
@@ -203,7 +203,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'procedure_code_1' as field_name,
@@ -222,7 +222,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'procedure_code_2' as field_name,
@@ -241,7 +241,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'procedure_code_3' as field_name,
@@ -260,7 +260,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'discharge_disposition_code' as field_name,
@@ -279,7 +279,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'admit_source_code' as field_name,
@@ -298,7 +298,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'admit_type_code' as field_name,
@@ -317,7 +317,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'bill_type_code' as field_name,
@@ -336,7 +336,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'place_of_service_code' as field_name,
@@ -355,7 +355,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'rendering_npi' as field_name,
@@ -373,7 +373,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'billing_npi' as field_name,
@@ -391,7 +391,7 @@ field_observations as (
     select
         m.data_source,
         m.payer,
-        m.plan,
+        m.plan_name,
         m.year_month_int,
         m.year_month,
         'facility_npi' as field_name,
@@ -409,7 +409,7 @@ field_observations as (
     select
         p.data_source,
         p.payer,
-        p.plan,
+        p.plan_name,
         p.year_month_int,
         p.year_month,
         'ndc_code' as field_name,
@@ -427,7 +427,7 @@ aggregated as (
     select
         data_source,
         payer,
-        plan,
+        plan_name,
         year_month_int,
         year_month,
         field_name,
@@ -441,7 +441,7 @@ aggregated as (
     group by
         data_source,
         payer,
-        plan,
+        plan_name,
         year_month_int,
         year_month,
         field_name
@@ -450,7 +450,7 @@ aggregated as (
 select
     data_source,
     payer,
-    plan,
+    plan_name as {{ the_tuva_project.quote_column('plan') }},
     year_month_int,
     year_month,
     field_name,
@@ -475,6 +475,6 @@ from aggregated
 order by
     data_source,
     payer,
-    plan,
+    plan_name,
     field_name,
     year_month_int
