@@ -45,15 +45,23 @@ Add to downstream `packages.yml`:
 ```yml
 packages:
   - git: "https://github.com/<your-org>/reconciliation_dashboard.git"
-    revision: "main"
+    revision: "master"
 ```
 
-If Tuva is not already installed in that same project, add it too:
+This package intentionally does not declare transitive dependencies to avoid version conflicts in client projects.
+The downstream project must already include:
+
+- Tuva package (or equivalent fork) that provides the referenced core/input/terminology models
+- `dbt_utils` (used by model tests in this package)
+
+Example:
 
 ```yml
 packages:
   - package: tuva-health/the_tuva_project
     version: [">=0.15.0", "<1.0.0"]
+  - package: dbt-labs/dbt_utils
+    version: [">=1.0.0", "<2.0.0"]
 ```
 
 Run:
