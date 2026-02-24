@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reconciliation Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f3f7fb;
+      --card: #ffffff;
+      --text: #10223a;
+      --muted: #52667d;
+      --line: #d9e2ee;
+      --brand: #0b6bbf;
+      --brand-dark: #084b87;
+      --accent: #f59e0b;
+      --ok: #0f9d58;
+      --danger: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, #d9ecff 0%, transparent 35%),
+        radial-gradient(circle at 90% 0%, #ffecc9 0%, transparent 30%),
+        var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 36px rgba(16, 34, 58, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 24px 28px;
+      background: linear-gradient(130deg, var(--brand-dark), var(--brand));
+      color: #fff;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      letter-spacing: 0.2px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .tabs {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .tab-btn.active {
+      background: #fff;
+      color: var(--brand-dark);
+      border-color: #fff;
+    }
+
+    .content {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .tab-panel {
+      display: none;
+      gap: 16px;
+    }
+
+    .tab-panel.active {
+      display: grid;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 14px;
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+
+    .controls-wrap {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .controls-wrap > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 12px 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--line);
+      color: var(--brand-dark);
+    }
+
+    .controls-wrap[open] > summary {
+      border-bottom-color: var(--line);
+    }
+
+    .controls-body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .import-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 300px 1fr;
+    }
+
+    .import-grid textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      resize: vertical;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button, input[type="file"] {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    button.primary {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: var(--brand-dark);
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .filters.three {
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+    }
+
+    .filter-box label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    select[multiple] {
+      width: 100%;
+      min-height: 130px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 6px;
+      background: #fff;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      padding: 10px;
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .kpi .value {
+      margin-top: 6px;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 14px;
+    }
+
+    .chart-wrap {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .chart-wrap canvas {
+      height: 280px !important;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 20px;
+    }
+
+    th.sortable::after {
+      content: attr(data-sort-indicator);
+      position: absolute;
+      right: 6px;
+      color: var(--muted);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 360px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .table-actions {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .field-label {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+      cursor: help;
+    }
+
+    @media (max-width: 980px) {
+      .import-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filters,
+      .filters.three {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Reconciliation Dashboard</h1>
+      <p id="headerSubtitle">Load CSV output from <code>data_quality.reconciliation__monthly_summary</code>.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="reconciliation">Reconciliation Summary</button>
+        <button class="tab-btn" data-tab="mapping">Mapping Validity</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="panel-reconciliation" class="tab-panel active">
+        <details class="controls-wrap">
+          <summary>Controls: table name, CSV load, filters</summary>
+          <div class="controls-body">
+        <div class="panel">
+          <h2>0) Table to Export</h2>
+          <div class="small">Default package schema pattern: <code>data_quality.reconciliation__monthly_summary</code></div>
+        </div>
+
+        <div class="panel">
+          <h2>1) Load Reconciliation CSV</h2>
+          <div class="import-grid">
+            <div>
+              <div class="small">Upload exported CSV</div>
+              <input id="recFileInput" type="file" accept=".csv" />
+              <div class="btn-row">
+                <button class="primary" id="recLoadFileBtn">Load File</button>
+              </div>
+            </div>
+            <div>
+              <div class="small">Or paste CSV directly</div>
+              <textarea id="recCsvText" placeholder="Paste reconciliation__monthly_summary CSV including headers"></textarea>
+              <div class="btn-row">
+                <button class="primary" id="recLoadTextBtn">Load Pasted CSV</button>
+                <button id="recClearBtn">Clear</button>
+              </div>
+            </div>
+          </div>
+          <div id="recStatus" class="status">No reconciliation data loaded.</div>
+        </div>
+
+        <div class="panel">
+          <h2>2) Filters (multi-select)</h2>
+          <div class="filters three">
+            <div class="filter-box">
+              <label for="recSelDataSource">data_source</label>
+              <select id="recSelDataSource" multiple></select>
+            </div>
+            <div class="filter-box">
+              <label for="recSelPayer">payer</label>
+              <select id="recSelPayer" multiple></select>
+            </div>
+            <div class="filter-box">
+              <label for="recSelPlan">plan</label>
+              <select id="recSelPlan" multiple></select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="recSelectAllBtn">Select All</button>
+            <button id="recApplyFiltersBtn" class="primary">Apply Filters</button>
+          </div>
+        </div>
+          </div>
+        </details>
+
+        <div class="panel">
+          <h2>3) KPI Summary</h2>
+          <div class="kpis" id="recKpis"></div>
+        </div>
+
+        <div class="panel">
+          <h2>4) Line Charts (grouped by month)</h2>
+          <div class="chart-grid">
+            <div class="chart-wrap">
+              <div class="small">Member Months and Claims</div>
+              <canvas id="recVolumeChart"></canvas>
+            </div>
+            <div class="chart-wrap">
+              <div class="small">Paid Amount and PMPM</div>
+              <canvas id="recFinancialChart"></canvas>
+            </div>
+            <div class="chart-wrap">
+              <div class="small">Percent Members with Claims</div>
+              <canvas id="recPctChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>5) Monthly Aggregated Values</h2>
+          <div class="table-actions">
+            <button id="recExportMonthlyBtn">Export CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="recMonthlyTable">
+              <thead>
+                <tr>
+                  <th>year_month</th>
+                  <th>member_months</th>
+                  <th>members</th>
+                  <th>claims</th>
+                  <th>claim_lines</th>
+                  <th>paid_amount</th>
+                  <th>members_with_claims</th>
+                  <th>pct_members_with_claims</th>
+                  <th>claims_per_1000</th>
+                  <th>pmpm_paid</th>
+                  <th>avg_paid_per_claim</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>6) Filtered Detail Rows</h2>
+          <div class="small">First 1000 rows at model grain (data_source, payer, plan, month).</div>
+          <div class="table-actions">
+            <button id="recExportDetailBtn">Export CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="recDetailTable">
+              <thead>
+                <tr>
+                  <th>data_source</th>
+                  <th>payer</th>
+                  <th>plan</th>
+                  <th>year_month</th>
+                  <th>member_months</th>
+                  <th>claims</th>
+                  <th>paid_amount</th>
+                  <th>pmpm_paid</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-mapping" class="tab-panel">
+        <details class="controls-wrap">
+          <summary>Controls: table name, CSV load, filters</summary>
+          <div class="controls-body">
+        <div class="panel">
+          <h2>0) Table to Export</h2>
+          <div class="small">Default package schema pattern: <code>data_quality.reconciliation__mapping_validity_monthly</code></div>
+        </div>
+
+        <div class="panel">
+          <h2>1) Load Mapping Validity CSV</h2>
+          <div class="import-grid">
+            <div>
+              <div class="small">Upload exported CSV</div>
+              <input id="mapFileInput" type="file" accept=".csv" />
+              <div class="btn-row">
+                <button class="primary" id="mapLoadFileBtn">Load File</button>
+              </div>
+            </div>
+            <div>
+              <div class="small">Or paste CSV directly</div>
+              <textarea id="mapCsvText" placeholder="Paste reconciliation__mapping_validity_monthly CSV including headers"></textarea>
+              <div class="btn-row">
+                <button class="primary" id="mapLoadTextBtn">Load Pasted CSV</button>
+                <button id="mapClearBtn">Clear</button>
+              </div>
+            </div>
+          </div>
+          <div id="mapStatus" class="status">No mapping validity data loaded.</div>
+        </div>
+
+        <div class="panel">
+          <h2>2) Filters (multi-select)</h2>
+          <div class="filters">
+            <div class="filter-box">
+              <label for="mapSelDataSource">data_source</label>
+              <select id="mapSelDataSource" multiple></select>
+            </div>
+            <div class="filter-box">
+              <label for="mapSelPayer">payer</label>
+              <select id="mapSelPayer" multiple></select>
+            </div>
+            <div class="filter-box">
+              <label for="mapSelPlan">plan</label>
+              <select id="mapSelPlan" multiple></select>
+            </div>
+            <div class="filter-box">
+              <label for="mapSelField">field_name</label>
+              <select id="mapSelField" multiple></select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="mapSelectAllBtn">Select All</button>
+            <button id="mapApplyFiltersBtn" class="primary">Apply Filters</button>
+          </div>
+        </div>
+          </div>
+        </details>
+
+        <div class="panel">
+          <h2>3) KPI Summary</h2>
+          <div class="kpis" id="mapKpis"></div>
+        </div>
+
+        <div class="panel">
+          <h2>4) Valid Rate Trend by Month</h2>
+          <div class="chart-wrap">
+            <div class="small">One line per field_name. Metric: valid_rate_applicable.</div>
+            <canvas id="mapTrendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>5) Field-Level Validity Summary</h2>
+          <div class="small">`applicability_definition` explains which claim scope each field is evaluated on.</div>
+          <div class="table-actions">
+            <button id="mapExportFieldSummaryBtn">Export CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="mapFieldSummaryTable">
+              <thead>
+                <tr>
+                  <th>field_name</th>
+                  <th>applicability_definition</th>
+                  <th>applicable_claim_lines</th>
+                  <th>valid_claim_lines</th>
+                  <th>invalid_claim_lines</th>
+                  <th>null_claim_lines</th>
+                  <th>valid_rate_applicable</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>6) Monthly Field Detail</h2>
+          <div class="small">First 1500 rows at grain (data_source, payer, plan, field_name, month).</div>
+          <div class="table-actions">
+            <button id="mapExportMonthlyBtn">Export CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="mapMonthlyTable">
+              <thead>
+                <tr>
+                  <th>year_month</th>
+                  <th>field_name</th>
+                  <th>applicability_definition</th>
+                  <th>applicable_claim_lines</th>
+                  <th>valid_claim_lines</th>
+                  <th>invalid_claim_lines</th>
+                  <th>null_claim_lines</th>
+                  <th>not_applicable_claim_lines</th>
+                  <th>valid_rate_applicable</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const byId = (id) => document.getElementById(id);
+
+    const FIELD_DEFINITIONS = {
+      drg_code: {
+        applicability: "Institutional claims only",
+        note: "Professional medical claim lines are treated as not_applicable."
+      },
+      revenue_center_code: {
+        applicability: "Institutional claims only",
+        note: "Professional medical claim lines are treated as not_applicable."
+      },
+      discharge_disposition_code: {
+        applicability: "Institutional claims only",
+        note: "Professional medical claim lines are treated as not_applicable."
+      },
+      admit_source_code: {
+        applicability: "Institutional claims only",
+        note: "Professional medical claim lines are treated as not_applicable."
+      },
+      admit_type_code: {
+        applicability: "Institutional claims only",
+        note: "Professional medical claim lines are treated as not_applicable."
+      },
+      bill_type_code: {
+        applicability: "Institutional claims only",
+        note: "Professional medical claim lines are treated as not_applicable."
+      },
+      procedure_code_1: {
+        applicability: "Institutional claims only",
+        note: "Procedure codes are validated as ICD-10-PCS; professional rows are not_applicable."
+      },
+      procedure_code_2: {
+        applicability: "Institutional claims only",
+        note: "Procedure codes are validated as ICD-10-PCS; professional rows are not_applicable."
+      },
+      procedure_code_3: {
+        applicability: "Institutional claims only",
+        note: "Procedure codes are validated as ICD-10-PCS; professional rows are not_applicable."
+      },
+      place_of_service_code: {
+        applicability: "Professional claims only",
+        note: "Institutional medical claim lines are treated as not_applicable."
+      },
+      hcpcs_code: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Evaluated across both medical claim types."
+      },
+      diagnosis_code_1: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Evaluated across both medical claim types."
+      },
+      diagnosis_code_2: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Evaluated across both medical claim types."
+      },
+      diagnosis_code_3: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Evaluated across both medical claim types."
+      },
+      rendering_npi: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Validated against terminology__provider NPI values."
+      },
+      billing_npi: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Validated against terminology__provider NPI values."
+      },
+      facility_npi: {
+        applicability: "Medical claims (professional + institutional)",
+        note: "Validated against terminology__provider NPI values."
+      },
+      ndc_code: {
+        applicability: "Pharmacy claims only",
+        note: "Evaluated from pharmacy_claim rows."
+      }
+    };
+
+    function fieldDefinition(fieldName) {
+      const key = String(fieldName ?? "").trim().toLowerCase();
+      return FIELD_DEFINITIONS[key] || {
+        applicability: "See model logic",
+        note: "Applicability is controlled by reconciliation__mapping_validity_monthly CASE logic."
+      };
+    }
+
+    function escHtml(v) {
+      return String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    const num = (v) => {
+      const n = Number(String(v ?? "").replace(/,/g, "").trim());
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const pctNum = (v) => {
+      const n = Number(String(v ?? "").replace(/,/g, "").trim());
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const clean = (v) => {
+      const s = String(v ?? "").trim();
+      return s === "" ? "(blank)" : s;
+    };
+
+    const monthKey = (row) => {
+      const ymInt = row.year_month_int;
+      if (ymInt !== undefined && ymInt !== null && String(ymInt).trim() !== "") {
+        return Number(String(ymInt).replace(/[^0-9]/g, ""));
+      }
+      return Number(String(row.year_month ?? "").replace(/[^0-9]/g, ""));
+    };
+
+    const monthLabel = (row) => {
+      const raw = String(row.year_month ?? "").trim();
+      if (raw.length > 0) {
+        if (/^\d{6}$/.test(raw)) {
+          return raw.slice(0, 4) + "-" + raw.slice(4, 6);
+        }
+        return raw;
+      }
+      const key = monthKey(row);
+      const s = String(key);
+      if (/^\d{6}$/.test(s)) {
+        return s.slice(0, 4) + "-" + s.slice(4, 6);
+      }
+      return "";
+    };
+
+    const fmtInt = (n) => Number(n || 0).toLocaleString();
+    const fmtMoney = (n) => "$" + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const fmtPct = (n) => (Number(n || 0) * 100).toFixed(1) + "%";
+    const fmtFloat = (n) => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const tableSortState = {};
+
+    function csvEscape(value) {
+      const s = String(value ?? "");
+      if (/[",\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    function exportTableCsv(tableId, filePrefix) {
+      const table = byId(tableId);
+      if (!table) return;
+
+      const headers = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent.trim());
+      const rows = Array.from(table.querySelectorAll("tbody tr")).map((tr) =>
+        Array.from(tr.querySelectorAll("td")).map((td) => td.textContent.trim())
+      );
+
+      if (!rows.length) return;
+
+      const csvLines = [headers, ...rows].map((row) => row.map(csvEscape).join(","));
+      const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `${filePrefix}_${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function parseSortValue(text) {
+      const raw = String(text ?? "").trim();
+      const cleaned = raw.replace(/\$/g, "").replace(/,/g, "").replace(/%/g, "").trim();
+      const asNum = Number(cleaned);
+      if (cleaned !== "" && Number.isFinite(asNum)) {
+        return { isNumber: true, value: asNum };
+      }
+      return { isNumber: false, value: raw.toLowerCase() };
+    }
+
+    function updateSortIndicators(tableId) {
+      const table = byId(tableId);
+      if (!table) return;
+      const state = tableSortState[tableId];
+      const headers = Array.from(table.querySelectorAll("thead th"));
+      headers.forEach((th, idx) => {
+        th.setAttribute("data-sort-indicator", "");
+        if (state && state.column === idx) {
+          th.setAttribute("data-sort-indicator", state.direction === "asc" ? "▲" : "▼");
+        }
+      });
+    }
+
+    function sortTableRows(tableId, columnIndex, direction) {
+      const table = byId(tableId);
+      if (!table) return;
+
+      const tbody = table.querySelector("tbody");
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      rows.sort((rowA, rowB) => {
+        const valA = parseSortValue(rowA.children[columnIndex]?.textContent ?? "");
+        const valB = parseSortValue(rowB.children[columnIndex]?.textContent ?? "");
+
+        let cmp = 0;
+        if (valA.isNumber && valB.isNumber) {
+          cmp = valA.value - valB.value;
+        } else {
+          cmp = String(valA.value).localeCompare(String(valB.value));
+        }
+        return direction === "asc" ? cmp : -cmp;
+      });
+
+      tbody.innerHTML = "";
+      rows.forEach((row) => tbody.appendChild(row));
+      updateSortIndicators(tableId);
+    }
+
+    function applyTableSortIfAny(tableId) {
+      const state = tableSortState[tableId];
+      if (!state) return;
+      sortTableRows(tableId, state.column, state.direction);
+    }
+
+    function enableTableSorting(tableId) {
+      const table = byId(tableId);
+      if (!table) return;
+
+      const headers = Array.from(table.querySelectorAll("thead th"));
+      headers.forEach((th, idx) => {
+        th.classList.add("sortable");
+        th.addEventListener("click", () => {
+          const current = tableSortState[tableId];
+          const nextDirection = current && current.column === idx && current.direction === "asc" ? "desc" : "asc";
+          tableSortState[tableId] = { column: idx, direction: nextDirection };
+          sortTableRows(tableId, idx, nextDirection);
+        });
+      });
+      updateSortIndicators(tableId);
+    }
+
+    function initializeTableUtilities() {
+      [
+        "recMonthlyTable",
+        "recDetailTable",
+        "mapFieldSummaryTable",
+        "mapMonthlyTable"
+      ].forEach(enableTableSorting);
+    }
+
+    function parseCSVLine(line) {
+      const out = [];
+      let cur = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === "," && !inQuotes) {
+          out.push(cur);
+          cur = "";
+        } else {
+          cur += ch;
+        }
+      }
+
+      out.push(cur);
+      return out;
+    }
+
+    function parseCSV(text) {
+      const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+      if (!normalized) return [];
+
+      const lines = normalized.split("\n").filter((l) => l.trim() !== "");
+      if (lines.length < 2) return [];
+
+      const headers = parseCSVLine(lines[0]).map((h) => h.trim().toLowerCase());
+      const rows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const vals = parseCSVLine(lines[i]);
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = (vals[idx] ?? "").trim();
+        });
+        rows.push(obj);
+      }
+
+      return rows;
+    }
+
+    function populateMultiSelect(id, values) {
+      const sel = byId(id);
+      const prev = new Set(Array.from(sel.selectedOptions).map((o) => o.value));
+      sel.innerHTML = "";
+
+      values.forEach((v) => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        if (prev.size === 0 || prev.has(v)) {
+          opt.selected = true;
+        }
+        sel.appendChild(opt);
+      });
+    }
+
+    function getSelectedSet(id) {
+      const sel = byId(id);
+      return new Set(Array.from(sel.selectedOptions).map((o) => o.value));
+    }
+
+    function selectAll(idList) {
+      idList.forEach((id) => {
+        Array.from(byId(id).options).forEach((opt) => {
+          opt.selected = true;
+        });
+      });
+    }
+
+    function clearSelects(idList) {
+      idList.forEach((id) => {
+        byId(id).innerHTML = "";
+      });
+    }
+
+    function setupTabs() {
+      const buttons = Array.from(document.querySelectorAll(".tab-btn"));
+      const headerSubtitle = byId("headerSubtitle");
+      const panels = {
+        reconciliation: byId("panel-reconciliation"),
+        mapping: byId("panel-mapping")
+      };
+      const subtitleByTab = {
+        reconciliation: "Load CSV output from <code>data_quality.reconciliation__monthly_summary</code>.",
+        mapping: "Load CSV output from <code>data_quality.reconciliation__mapping_validity_monthly</code>."
+      };
+
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const tab = btn.getAttribute("data-tab");
+          buttons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          Object.values(panels).forEach((p) => p.classList.remove("active"));
+          panels[tab].classList.add("active");
+          headerSubtitle.innerHTML = subtitleByTab[tab];
+        });
+      });
+    }
+
+    const recState = {
+      allRows: [],
+      filteredRows: [],
+      charts: { volume: null, financial: null, pct: null }
+    };
+
+    function recSetStatus(msg) {
+      byId("recStatus").textContent = msg;
+    }
+
+    function recNormalizeRows(rows) {
+      return rows.map((r) => ({
+        data_source: clean(r.data_source),
+        payer: clean(r.payer),
+        plan: clean(r.plan),
+        year_month_int: r.year_month_int,
+        year_month: r.year_month,
+        member_months: num(r.member_months),
+        members: num(r.members),
+        claims: num(r.claims),
+        claim_lines: num(r.claim_lines),
+        paid_amount: num(r.paid_amount),
+        members_with_claims: num(r.members_with_claims),
+        pct_members_with_claims: pctNum(r.pct_members_with_claims),
+        claims_per_1000: pctNum(r.claims_per_1000),
+        pmpm_paid: pctNum(r.pmpm_paid),
+        avg_paid_per_claim: pctNum(r.avg_paid_per_claim)
+      }));
+    }
+
+    function recRebuildFilters() {
+      const dataSources = Array.from(new Set(recState.allRows.map((r) => r.data_source))).sort();
+      const payers = Array.from(new Set(recState.allRows.map((r) => r.payer))).sort();
+      const plans = Array.from(new Set(recState.allRows.map((r) => r.plan))).sort();
+
+      populateMultiSelect("recSelDataSource", dataSources);
+      populateMultiSelect("recSelPayer", payers);
+      populateMultiSelect("recSelPlan", plans);
+    }
+
+    function recAggregateMonthly(rows) {
+      const map = new Map();
+
+      rows.forEach((r) => {
+        const key = monthKey(r);
+        const label = monthLabel(r);
+        if (!Number.isFinite(key)) return;
+
+        const current = map.get(key) || {
+          year_month_key: key,
+          year_month: label,
+          member_months: 0,
+          members: 0,
+          claims: 0,
+          claim_lines: 0,
+          paid_amount: 0,
+          members_with_claims: 0
+        };
+
+        current.member_months += r.member_months;
+        current.members += r.members;
+        current.claims += r.claims;
+        current.claim_lines += r.claim_lines;
+        current.paid_amount += r.paid_amount;
+        current.members_with_claims += r.members_with_claims;
+
+        map.set(key, current);
+      });
+
+      const out = Array.from(map.values()).sort((a, b) => a.year_month_key - b.year_month_key);
+      out.forEach((r) => {
+        r.pct_members_with_claims = r.member_months ? r.members_with_claims / r.member_months : 0;
+        r.claims_per_1000 = r.member_months ? (r.claims * 1000) / r.member_months : 0;
+        r.pmpm_paid = r.member_months ? r.paid_amount / r.member_months : 0;
+        r.avg_paid_per_claim = r.claims ? r.paid_amount / r.claims : 0;
+      });
+
+      return out;
+    }
+
+    function recDestroyChart(name) {
+      if (recState.charts[name]) {
+        recState.charts[name].destroy();
+        recState.charts[name] = null;
+      }
+    }
+
+    function recRenderKPIs(monthlyRows) {
+      const root = byId("recKpis");
+      if (!monthlyRows.length) {
+        root.innerHTML = "<div class='small'>No rows to display.</div>";
+        return;
+      }
+
+      const latest = monthlyRows[monthlyRows.length - 1];
+      const totals = monthlyRows.reduce((acc, r) => {
+        acc.member_months += r.member_months;
+        acc.claims += r.claims;
+        acc.paid_amount += r.paid_amount;
+        acc.members_with_claims += r.members_with_claims;
+        return acc;
+      }, { member_months: 0, claims: 0, paid_amount: 0, members_with_claims: 0 });
+
+      const overallPct = totals.member_months ? totals.members_with_claims / totals.member_months : 0;
+
+      root.innerHTML = `
+        <div class="kpi"><div class="label">Months in View</div><div class="value">${fmtInt(monthlyRows.length)}</div></div>
+        <div class="kpi"><div class="label">Total Member Months</div><div class="value">${fmtInt(totals.member_months)}</div></div>
+        <div class="kpi"><div class="label">Total Claims</div><div class="value">${fmtInt(totals.claims)}</div></div>
+        <div class="kpi"><div class="label">Total Paid Amount</div><div class="value">${fmtMoney(totals.paid_amount)}</div></div>
+        <div class="kpi"><div class="label">Overall % Members with Claims</div><div class="value">${fmtPct(overallPct)}</div></div>
+        <div class="kpi"><div class="label">Latest PMPM (${latest.year_month})</div><div class="value">${fmtMoney(latest.pmpm_paid)}</div></div>
+      `;
+    }
+
+    function recRenderCharts(monthlyRows) {
+      const labels = monthlyRows.map((r) => r.year_month);
+
+      recDestroyChart("volume");
+      recState.charts.volume = new Chart(byId("recVolumeChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { label: "member_months", data: monthlyRows.map((r) => r.member_months), borderColor: "#0b6bbf", backgroundColor: "#0b6bbf", tension: 0.2 },
+            { label: "claims", data: monthlyRows.map((r) => r.claims), borderColor: "#f59e0b", backgroundColor: "#f59e0b", tension: 0.2 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      recDestroyChart("financial");
+      recState.charts.financial = new Chart(byId("recFinancialChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { label: "paid_amount", data: monthlyRows.map((r) => r.paid_amount), borderColor: "#0f9d58", backgroundColor: "#0f9d58", tension: 0.2 },
+            { label: "pmpm_paid", data: monthlyRows.map((r) => r.pmpm_paid), borderColor: "#9333ea", backgroundColor: "#9333ea", tension: 0.2 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      recDestroyChart("pct");
+      recState.charts.pct = new Chart(byId("recPctChart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            { label: "pct_members_with_claims", data: monthlyRows.map((r) => r.pct_members_with_claims), borderColor: "#dc2626", backgroundColor: "#dc2626", tension: 0.2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              ticks: {
+                callback: (v) => (v * 100).toFixed(0) + "%"
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function recRenderMonthlyTable(monthlyRows) {
+      const tbody = byId("recMonthlyTable").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      monthlyRows.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.year_month}</td>
+          <td>${fmtInt(r.member_months)}</td>
+          <td>${fmtInt(r.members)}</td>
+          <td>${fmtInt(r.claims)}</td>
+          <td>${fmtInt(r.claim_lines)}</td>
+          <td>${fmtMoney(r.paid_amount)}</td>
+          <td>${fmtInt(r.members_with_claims)}</td>
+          <td>${fmtPct(r.pct_members_with_claims)}</td>
+          <td>${fmtFloat(r.claims_per_1000)}</td>
+          <td>${fmtMoney(r.pmpm_paid)}</td>
+          <td>${fmtMoney(r.avg_paid_per_claim)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTableSortIfAny("recMonthlyTable");
+    }
+
+    function recRenderDetailTable(rows) {
+      const tbody = byId("recDetailTable").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      const sorted = [...rows].sort((a, b) => {
+        const aKey = monthKey(a);
+        const bKey = monthKey(b);
+        if (a.data_source !== b.data_source) return a.data_source.localeCompare(b.data_source);
+        if (a.payer !== b.payer) return a.payer.localeCompare(b.payer);
+        if (a.plan !== b.plan) return a.plan.localeCompare(b.plan);
+        return aKey - bKey;
+      });
+
+      sorted.slice(0, 1000).forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.data_source}</td>
+          <td>${r.payer}</td>
+          <td>${r.plan}</td>
+          <td>${monthLabel(r)}</td>
+          <td>${fmtInt(r.member_months)}</td>
+          <td>${fmtInt(r.claims)}</td>
+          <td>${fmtMoney(r.paid_amount)}</td>
+          <td>${fmtMoney(r.pmpm_paid)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTableSortIfAny("recDetailTable");
+    }
+
+    function recRenderAll() {
+      const monthlyRows = recAggregateMonthly(recState.filteredRows);
+      recRenderKPIs(monthlyRows);
+      recRenderCharts(monthlyRows);
+      recRenderMonthlyTable(monthlyRows);
+      recRenderDetailTable(recState.filteredRows);
+    }
+
+    function recApplyFilters() {
+      if (!recState.allRows.length) {
+        recState.filteredRows = [];
+        recRenderAll();
+        return;
+      }
+
+      const dsSet = getSelectedSet("recSelDataSource");
+      const payerSet = getSelectedSet("recSelPayer");
+      const planSet = getSelectedSet("recSelPlan");
+
+      recState.filteredRows = recState.allRows.filter((r) => {
+        return dsSet.has(r.data_source) && payerSet.has(r.payer) && planSet.has(r.plan);
+      });
+
+      recRenderAll();
+      recSetStatus(`Loaded ${recState.allRows.length.toLocaleString()} rows. Filtered to ${recState.filteredRows.length.toLocaleString()} rows.`);
+    }
+
+    function recLoadRows(rows) {
+      if (!rows.length) {
+        recSetStatus("No data loaded. CSV is empty or invalid.");
+        return;
+      }
+
+      recState.allRows = recNormalizeRows(rows);
+      recRebuildFilters();
+      recApplyFilters();
+    }
+
+    function recClear() {
+      byId("recCsvText").value = "";
+      byId("recFileInput").value = "";
+      recState.allRows = [];
+      recState.filteredRows = [];
+      clearSelects(["recSelDataSource", "recSelPayer", "recSelPlan"]);
+      ["volume", "financial", "pct"].forEach((name) => recDestroyChart(name));
+      byId("recMonthlyTable").querySelector("tbody").innerHTML = "";
+      byId("recDetailTable").querySelector("tbody").innerHTML = "";
+      byId("recKpis").innerHTML = "";
+      recSetStatus("Cleared.");
+    }
+
+    const mapState = {
+      allRows: [],
+      filteredRows: [],
+      charts: { trend: null }
+    };
+
+    function mapSetStatus(msg) {
+      byId("mapStatus").textContent = msg;
+    }
+
+    function mapNormalizeRows(rows) {
+      return rows.map((r) => ({
+        data_source: clean(r.data_source),
+        payer: clean(r.payer),
+        plan: clean(r.plan),
+        year_month_int: r.year_month_int,
+        year_month: r.year_month,
+        field_name: clean(r.field_name),
+        claim_lines_total: num(r.claim_lines_total),
+        applicable_claim_lines: num(r.applicable_claim_lines),
+        valid_claim_lines: num(r.valid_claim_lines),
+        invalid_claim_lines: num(r.invalid_claim_lines),
+        null_claim_lines: num(r.null_claim_lines),
+        not_applicable_claim_lines: num(r.not_applicable_claim_lines),
+        valid_rate: pctNum(r.valid_rate),
+        invalid_rate: pctNum(r.invalid_rate),
+        null_rate: pctNum(r.null_rate),
+        not_applicable_rate: pctNum(r.not_applicable_rate),
+        valid_rate_applicable: pctNum(r.valid_rate_applicable)
+      }));
+    }
+
+    function mapRebuildFilters() {
+      const dataSources = Array.from(new Set(mapState.allRows.map((r) => r.data_source))).sort();
+      const payers = Array.from(new Set(mapState.allRows.map((r) => r.payer))).sort();
+      const plans = Array.from(new Set(mapState.allRows.map((r) => r.plan))).sort();
+      const fields = Array.from(new Set(mapState.allRows.map((r) => r.field_name))).sort();
+
+      populateMultiSelect("mapSelDataSource", dataSources);
+      populateMultiSelect("mapSelPayer", payers);
+      populateMultiSelect("mapSelPlan", plans);
+      populateMultiSelect("mapSelField", fields);
+    }
+
+    function mapAggregateByField(rows) {
+      const map = new Map();
+
+      rows.forEach((r) => {
+        const def = fieldDefinition(r.field_name);
+        const cur = map.get(r.field_name) || {
+          field_name: r.field_name,
+          applicability_definition: def.applicability,
+          applicability_note: def.note,
+          claim_lines_total: 0,
+          applicable_claim_lines: 0,
+          valid_claim_lines: 0,
+          invalid_claim_lines: 0,
+          null_claim_lines: 0,
+          not_applicable_claim_lines: 0
+        };
+
+        cur.claim_lines_total += r.claim_lines_total;
+        cur.applicable_claim_lines += r.applicable_claim_lines;
+        cur.valid_claim_lines += r.valid_claim_lines;
+        cur.invalid_claim_lines += r.invalid_claim_lines;
+        cur.null_claim_lines += r.null_claim_lines;
+        cur.not_applicable_claim_lines += r.not_applicable_claim_lines;
+        map.set(r.field_name, cur);
+      });
+
+      const out = Array.from(map.values()).sort((a, b) => a.field_name.localeCompare(b.field_name));
+      out.forEach((r) => {
+        r.valid_rate = r.claim_lines_total ? r.valid_claim_lines / r.claim_lines_total : 0;
+        r.valid_rate_applicable = r.applicable_claim_lines ? r.valid_claim_lines / r.applicable_claim_lines : 0;
+      });
+
+      return out;
+    }
+
+    function mapAggregateByMonthAndField(rows) {
+      const map = new Map();
+
+      rows.forEach((r) => {
+        const month = monthKey(r);
+        if (!Number.isFinite(month)) return;
+        const key = `${r.field_name}__${month}`;
+        const def = fieldDefinition(r.field_name);
+
+        const cur = map.get(key) || {
+          field_name: r.field_name,
+          applicability_definition: def.applicability,
+          applicability_note: def.note,
+          year_month_key: month,
+          year_month: monthLabel(r),
+          claim_lines_total: 0,
+          applicable_claim_lines: 0,
+          valid_claim_lines: 0,
+          invalid_claim_lines: 0,
+          null_claim_lines: 0,
+          not_applicable_claim_lines: 0
+        };
+
+        cur.claim_lines_total += r.claim_lines_total;
+        cur.applicable_claim_lines += r.applicable_claim_lines;
+        cur.valid_claim_lines += r.valid_claim_lines;
+        cur.invalid_claim_lines += r.invalid_claim_lines;
+        cur.null_claim_lines += r.null_claim_lines;
+        cur.not_applicable_claim_lines += r.not_applicable_claim_lines;
+        map.set(key, cur);
+      });
+
+      const out = Array.from(map.values()).sort((a, b) => {
+        if (a.field_name !== b.field_name) return a.field_name.localeCompare(b.field_name);
+        return a.year_month_key - b.year_month_key;
+      });
+
+      out.forEach((r) => {
+        r.valid_rate = r.claim_lines_total ? r.valid_claim_lines / r.claim_lines_total : 0;
+        r.valid_rate_applicable = r.applicable_claim_lines ? r.valid_claim_lines / r.applicable_claim_lines : 0;
+      });
+
+      return out;
+    }
+
+    function mapDestroyChart() {
+      if (mapState.charts.trend) {
+        mapState.charts.trend.destroy();
+        mapState.charts.trend = null;
+      }
+    }
+
+    function mapRenderKPIs(rows) {
+      const root = byId("mapKpis");
+      if (!rows.length) {
+        root.innerHTML = "<div class='small'>No rows to display.</div>";
+        return;
+      }
+
+      const totals = rows.reduce((acc, r) => {
+        acc.claim_lines_total += r.claim_lines_total;
+        acc.applicable_claim_lines += r.applicable_claim_lines;
+        acc.valid_claim_lines += r.valid_claim_lines;
+        acc.invalid_claim_lines += r.invalid_claim_lines;
+        acc.null_claim_lines += r.null_claim_lines;
+        acc.not_applicable_claim_lines += r.not_applicable_claim_lines;
+        return acc;
+      }, {
+        claim_lines_total: 0,
+        applicable_claim_lines: 0,
+        valid_claim_lines: 0,
+        invalid_claim_lines: 0,
+        null_claim_lines: 0,
+        not_applicable_claim_lines: 0
+      });
+
+      const validRate = totals.claim_lines_total ? totals.valid_claim_lines / totals.claim_lines_total : 0;
+      const invalidRate = totals.claim_lines_total ? totals.invalid_claim_lines / totals.claim_lines_total : 0;
+      const nullRate = totals.claim_lines_total ? totals.null_claim_lines / totals.claim_lines_total : 0;
+      const validRateApplicable = totals.applicable_claim_lines ? totals.valid_claim_lines / totals.applicable_claim_lines : 0;
+
+      root.innerHTML = `
+        <div class="kpi"><div class="label">Claim Lines Total</div><div class="value">${fmtInt(totals.claim_lines_total)}</div></div>
+        <div class="kpi"><div class="label">Applicable Claim Lines</div><div class="value">${fmtInt(totals.applicable_claim_lines)}</div></div>
+        <div class="kpi"><div class="label">Valid Rate (Total)</div><div class="value">${fmtPct(validRate)}</div></div>
+        <div class="kpi"><div class="label">Valid Rate (Applicable)</div><div class="value">${fmtPct(validRateApplicable)}</div></div>
+        <div class="kpi"><div class="label">Invalid Rate (Total)</div><div class="value">${fmtPct(invalidRate)}</div></div>
+        <div class="kpi"><div class="label">Null Rate (Total)</div><div class="value">${fmtPct(nullRate)}</div></div>
+      `;
+    }
+
+    function mapRenderTrendChart(monthlyFieldRows) {
+      const months = Array.from(new Set(monthlyFieldRows.map((r) => r.year_month_key))).sort((a, b) => a - b);
+      const monthLabels = months.map((k) => {
+        const s = String(k);
+        return /^\d{6}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}` : s;
+      });
+
+      const fields = Array.from(new Set(monthlyFieldRows.map((r) => r.field_name))).sort();
+      const colorPalette = [
+        "#0b6bbf", "#f59e0b", "#0f9d58", "#dc2626", "#9333ea", "#0891b2", "#b45309", "#4f46e5", "#be185d"
+      ];
+
+      const byFieldMonth = new Map();
+      monthlyFieldRows.forEach((r) => {
+        byFieldMonth.set(`${r.field_name}__${r.year_month_key}`, r.valid_rate_applicable);
+      });
+
+      const datasets = fields.map((field, idx) => ({
+        label: field,
+        data: months.map((m) => byFieldMonth.get(`${field}__${m}`) ?? null),
+        borderColor: colorPalette[idx % colorPalette.length],
+        backgroundColor: colorPalette[idx % colorPalette.length],
+        tension: 0.2
+      }));
+
+      mapDestroyChart();
+      mapState.charts.trend = new Chart(byId("mapTrendChart"), {
+        type: "line",
+        data: {
+          labels: monthLabels,
+          datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              min: 0,
+              max: 1,
+              ticks: {
+                callback: (v) => (v * 100).toFixed(0) + "%"
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function mapRenderFieldSummaryTable(fieldRows) {
+      const tbody = byId("mapFieldSummaryTable").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      fieldRows.forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><span class="field-label" title="${escHtml(r.applicability_note)}">${escHtml(r.field_name)}</span></td>
+          <td title="${escHtml(r.applicability_note)}">${escHtml(r.applicability_definition)}</td>
+          <td>${fmtInt(r.applicable_claim_lines)}</td>
+          <td>${fmtInt(r.valid_claim_lines)}</td>
+          <td>${fmtInt(r.invalid_claim_lines)}</td>
+          <td>${fmtInt(r.null_claim_lines)}</td>
+          <td>${fmtPct(r.valid_rate_applicable)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTableSortIfAny("mapFieldSummaryTable");
+    }
+
+    function mapRenderMonthlyTable(monthlyFieldRows) {
+      const tbody = byId("mapMonthlyTable").querySelector("tbody");
+      tbody.innerHTML = "";
+
+      const sorted = [...monthlyFieldRows].sort((a, b) => {
+        if (a.year_month_key !== b.year_month_key) return a.year_month_key - b.year_month_key;
+        return a.field_name.localeCompare(b.field_name);
+      });
+
+      sorted.slice(0, 1500).forEach((r) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.year_month}</td>
+          <td><span class="field-label" title="${escHtml(r.applicability_note)}">${escHtml(r.field_name)}</span></td>
+          <td title="${escHtml(r.applicability_note)}">${escHtml(r.applicability_definition)}</td>
+          <td>${fmtInt(r.applicable_claim_lines)}</td>
+          <td>${fmtInt(r.valid_claim_lines)}</td>
+          <td>${fmtInt(r.invalid_claim_lines)}</td>
+          <td>${fmtInt(r.null_claim_lines)}</td>
+          <td>${fmtInt(r.not_applicable_claim_lines)}</td>
+          <td>${fmtPct(r.valid_rate_applicable)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      applyTableSortIfAny("mapMonthlyTable");
+    }
+
+    function mapRenderAll() {
+      const fieldRows = mapAggregateByField(mapState.filteredRows);
+      const monthlyFieldRows = mapAggregateByMonthAndField(mapState.filteredRows);
+      mapRenderKPIs(mapState.filteredRows);
+      mapRenderTrendChart(monthlyFieldRows);
+      mapRenderFieldSummaryTable(fieldRows);
+      mapRenderMonthlyTable(monthlyFieldRows);
+    }
+
+    function mapApplyFilters() {
+      if (!mapState.allRows.length) {
+        mapState.filteredRows = [];
+        mapRenderAll();
+        return;
+      }
+
+      const dsSet = getSelectedSet("mapSelDataSource");
+      const payerSet = getSelectedSet("mapSelPayer");
+      const planSet = getSelectedSet("mapSelPlan");
+      const fieldSet = getSelectedSet("mapSelField");
+
+      mapState.filteredRows = mapState.allRows.filter((r) => {
+        return dsSet.has(r.data_source) && payerSet.has(r.payer) && planSet.has(r.plan) && fieldSet.has(r.field_name);
+      });
+
+      mapRenderAll();
+      mapSetStatus(`Loaded ${mapState.allRows.length.toLocaleString()} rows. Filtered to ${mapState.filteredRows.length.toLocaleString()} rows.`);
+    }
+
+    function mapLoadRows(rows) {
+      if (!rows.length) {
+        mapSetStatus("No data loaded. CSV is empty or invalid.");
+        return;
+      }
+
+      mapState.allRows = mapNormalizeRows(rows);
+      mapRebuildFilters();
+      mapApplyFilters();
+    }
+
+    function mapClear() {
+      byId("mapCsvText").value = "";
+      byId("mapFileInput").value = "";
+      mapState.allRows = [];
+      mapState.filteredRows = [];
+      clearSelects(["mapSelDataSource", "mapSelPayer", "mapSelPlan", "mapSelField"]);
+      mapDestroyChart();
+      byId("mapFieldSummaryTable").querySelector("tbody").innerHTML = "";
+      byId("mapMonthlyTable").querySelector("tbody").innerHTML = "";
+      byId("mapKpis").innerHTML = "";
+      mapSetStatus("Cleared.");
+    }
+
+    function wireEvents() {
+      byId("recLoadFileBtn").addEventListener("click", () => {
+        const file = byId("recFileInput").files[0];
+        if (!file) {
+          recSetStatus("Choose a CSV file first.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => recLoadRows(parseCSV(String(e.target.result || "")));
+        reader.readAsText(file);
+      });
+
+      byId("recLoadTextBtn").addEventListener("click", () => {
+        recLoadRows(parseCSV(byId("recCsvText").value));
+      });
+
+      byId("recApplyFiltersBtn").addEventListener("click", recApplyFilters);
+      byId("recSelectAllBtn").addEventListener("click", () => {
+        selectAll(["recSelDataSource", "recSelPayer", "recSelPlan"]);
+        recApplyFilters();
+      });
+      byId("recClearBtn").addEventListener("click", recClear);
+      byId("recExportMonthlyBtn").addEventListener("click", () => {
+        exportTableCsv("recMonthlyTable", "reconciliation_monthly_aggregated");
+      });
+      byId("recExportDetailBtn").addEventListener("click", () => {
+        exportTableCsv("recDetailTable", "reconciliation_filtered_detail");
+      });
+      byId("mapLoadFileBtn").addEventListener("click", () => {
+        const file = byId("mapFileInput").files[0];
+        if (!file) {
+          mapSetStatus("Choose a CSV file first.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => mapLoadRows(parseCSV(String(e.target.result || "")));
+        reader.readAsText(file);
+      });
+
+      byId("mapLoadTextBtn").addEventListener("click", () => {
+        mapLoadRows(parseCSV(byId("mapCsvText").value));
+      });
+
+      byId("mapApplyFiltersBtn").addEventListener("click", mapApplyFilters);
+      byId("mapSelectAllBtn").addEventListener("click", () => {
+        selectAll(["mapSelDataSource", "mapSelPayer", "mapSelPlan", "mapSelField"]);
+        mapApplyFilters();
+      });
+      byId("mapClearBtn").addEventListener("click", mapClear);
+      byId("mapExportFieldSummaryBtn").addEventListener("click", () => {
+        exportTableCsv("mapFieldSummaryTable", "mapping_validity_field_summary");
+      });
+      byId("mapExportMonthlyBtn").addEventListener("click", () => {
+        exportTableCsv("mapMonthlyTable", "mapping_validity_monthly_detail");
+      });
+    }
+
+    setupTabs();
+    initializeTableUtilities();
+    wireEvents();
+  </script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+version: 2
+
+models:
+  - name: reconciliation__monthly_summary
+    description: >
+      Month-level reconciliation summary at the grain of
+      data_source, payer, plan, and month.
+      Uses the Tuva calendar table for month alignment and does not rely on
+      SQL date-part extraction logic.
+    config:
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_data_quality
+        {% else %}data_quality{%- endif -%}
+      alias: reconciliation__monthly_summary
+      materialized: table
+      tags:
+        - reconciliation_dashboard
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - data_source
+              - payer
+              - plan
+              - year_month_int
+    columns:
+      - name: data_source
+        description: Data source from Tuva core marts.
+        tests:
+          - not_null
+      - name: payer
+        description: Payer from member_months and medical_claim.
+      - name: plan
+        description: Plan from member_months and medical_claim.
+      - name: year_month_int
+        description: Calendar month key as YYYYMM.
+        tests:
+          - not_null
+      - name: year_month
+        description: Calendar month label as YYYY-MM.
+        tests:
+          - not_null
+      - name: member_months
+        description: Number of member-month rows.
+      - name: members
+        description: Distinct members in the month.
+      - name: claims
+        description: Distinct claim_id count.
+      - name: claim_lines
+        description: Total claim line count.
+      - name: paid_amount
+        description: Sum of paid_amount across claim lines.
+      - name: members_with_claims
+        description: Distinct members with at least one claim in the same month.
+      - name: pct_members_with_claims
+        description: members_with_claims divided by member_months.
+      - name: claims_per_1000
+        description: Claims per 1,000 member months.
+      - name: pmpm_paid
+        description: Paid amount per member month.
+      - name: avg_paid_per_claim
+        description: Average paid amount per claim.
+      - name: tuva_last_run
+        description: Run timestamp metadata inherited from Tuva conventions.
+
+  - name: reconciliation__mapping_validity_monthly
+    description: >
+      Month-level terminology mapping validity summary for selected medical claim
+      fields at the grain of data_source, payer, plan, field_name, and month.
+      This output contains no member identifiers or claim identifiers.
+    config:
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_data_quality
+        {% else %}data_quality{%- endif -%}
+      alias: reconciliation__mapping_validity_monthly
+      materialized: table
+      tags:
+        - reconciliation_dashboard
+        - mapping_validity
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - data_source
+              - payer
+              - plan
+              - field_name
+              - year_month_int
+    columns:
+      - name: data_source
+        description: Data source from Tuva core medical claims.
+        tests:
+          - not_null
+      - name: payer
+        description: Payer from Tuva core medical claims.
+      - name: plan
+        description: Plan from Tuva core medical claims.
+      - name: year_month_int
+        description: Calendar month key as YYYYMM.
+        tests:
+          - not_null
+      - name: year_month
+        description: Calendar month label as YYYY-MM.
+        tests:
+          - not_null
+      - name: field_name
+        description: Claim field checked against terminology reference sets.
+        tests:
+          - not_null
+      - name: claim_lines_total
+        description: Count of claim lines included in the field-level denominator.
+        tests:
+          - not_null
+      - name: applicable_claim_lines
+        description: Claim lines where the field is applicable for the claim type.
+        tests:
+          - not_null
+      - name: valid_claim_lines
+        description: Claim lines with non-null values that joined to terminology.
+        tests:
+          - not_null
+      - name: invalid_claim_lines
+        description: Claim lines with non-null values that did not join to terminology.
+        tests:
+          - not_null
+      - name: null_claim_lines
+        description: Claim lines where the field value is null or blank.
+        tests:
+          - not_null
+      - name: not_applicable_claim_lines
+        description: Claim lines where the field does not apply to the claim type.
+        tests:
+          - not_null
+      - name: valid_rate
+        description: valid_claim_lines divided by claim_lines_total.
+      - name: invalid_rate
+        description: invalid_claim_lines divided by claim_lines_total.
+      - name: null_rate
+        description: null_claim_lines divided by claim_lines_total.
+      - name: not_applicable_rate
+        description: not_applicable_claim_lines divided by claim_lines_total.
+      - name: valid_rate_applicable
+        description: valid_claim_lines divided by applicable_claim_lines.
+      - name: tuva_last_run
+        description: Run timestamp metadata inherited from Tuva conventions.
