@@ -334,6 +334,7 @@
 
         <div class="panel">
           <h2>1) Load Reconciliation CSV</h2>
+          <div class="small">Headerless CSV exports are supported. If no header is detected, the model column order is assumed.</div>
           <div class="import-grid">
             <div>
               <div class="small">Upload exported CSV</div>
@@ -465,6 +466,7 @@
 
         <div class="panel">
           <h2>1) Load Mapping Validity CSV</h2>
+          <div class="small">Headerless CSV exports are supported. If no header is detected, the model column order is assumed.</div>
           <div class="import-grid">
             <div>
               <div class="small">Upload exported CSV</div>
@@ -718,6 +720,44 @@
     const fmtPct = (n) => (Number(n || 0) * 100).toFixed(1) + "%";
     const fmtFloat = (n) => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
     const tableSortState = {};
+    const REC_MODEL_COLUMNS = [
+      "data_source",
+      "payer",
+      "plan",
+      "year_month_int",
+      "year_month",
+      "member_months",
+      "members",
+      "claims",
+      "claim_lines",
+      "paid_amount",
+      "members_with_claims",
+      "pct_members_with_claims",
+      "claims_per_1000",
+      "pmpm_paid",
+      "avg_paid_per_claim",
+      "tuva_last_run"
+    ];
+    const MAP_MODEL_COLUMNS = [
+      "data_source",
+      "payer",
+      "plan",
+      "year_month_int",
+      "year_month",
+      "field_name",
+      "claim_lines_total",
+      "applicable_claim_lines",
+      "valid_claim_lines",
+      "invalid_claim_lines",
+      "null_claim_lines",
+      "not_applicable_claim_lines",
+      "valid_rate",
+      "invalid_rate",
+      "null_rate",
+      "not_applicable_rate",
+      "valid_rate_applicable",
+      "tuva_last_run"
+    ];
 
     function csvEscape(value) {
       const s = String(value ?? "");
@@ -857,17 +897,47 @@
       return out;
     }
 
-    function parseCSV(text) {
+    function normalizeHeaderToken(v) {
+      return String(v ?? "")
+        .replace(/^\uFEFF/, "")
+        .trim()
+        .toLowerCase();
+    }
+
+    function looksLikeExpectedHeader(firstRowValues, expectedColumns) {
+      if (!firstRowValues.length || !expectedColumns.length) return false;
+      const normalized = firstRowValues.map(normalizeHeaderToken);
+      const compareCount = Math.min(normalized.length, expectedColumns.length);
+      if (compareCount < 3) return false;
+
+      for (let i = 0; i < compareCount; i++) {
+        if (normalized[i] !== expectedColumns[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function parseModelCSV(text, expectedColumns) {
       const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
-      if (!normalized) return [];
+      if (!normalized) {
+        return { rows: [], mode: "" };
+      }
 
       const lines = normalized.split("\n").filter((l) => l.trim() !== "");
-      if (lines.length < 2) return [];
+      if (!lines.length) {
+        return { rows: [], mode: "" };
+      }
 
-      const headers = parseCSVLine(lines[0]).map((h) => h.trim().toLowerCase());
+      const firstRow = parseCSVLine(lines[0]).map((h) => h.trim());
+      const hasHeader = looksLikeExpectedHeader(firstRow, expectedColumns);
+      const headers = hasHeader
+        ? firstRow.map(normalizeHeaderToken)
+        : expectedColumns;
+      const startIndex = hasHeader ? 1 : 0;
       const rows = [];
 
-      for (let i = 1; i < lines.length; i++) {
+      for (let i = startIndex; i < lines.length; i++) {
         const vals = parseCSVLine(lines[i]);
         const obj = {};
         headers.forEach((h, idx) => {
@@ -876,7 +946,20 @@
         rows.push(obj);
       }
 
-      return rows;
+      return {
+        rows,
+        mode: hasHeader ? "header_row" : "assumed_schema"
+      };
+    }
+
+    function loadModeText(mode) {
+      if (mode === "assumed_schema") {
+        return " Parsed without header using model column order.";
+      }
+      if (mode === "header_row") {
+        return " Parsed using CSV header row.";
+      }
+      return "";
     }
 
     function populateMultiSelect(id, values) {
@@ -942,6 +1025,7 @@
     const recState = {
       allRows: [],
       filteredRows: [],
+      loadMode: "",
       charts: { volume: null, financial: null, pct: null }
     };
 
@@ -1184,16 +1268,17 @@
       });
 
       recRenderAll();
-      recSetStatus(`Loaded ${recState.allRows.length.toLocaleString()} rows. Filtered to ${recState.filteredRows.length.toLocaleString()} rows.`);
+      recSetStatus(`Loaded ${recState.allRows.length.toLocaleString()} rows. Filtered to ${recState.filteredRows.length.toLocaleString()} rows.${loadModeText(recState.loadMode)}`);
     }
 
-    function recLoadRows(rows) {
+    function recLoadRows(rows, loadMode) {
       if (!rows.length) {
         recSetStatus("No data loaded. CSV is empty or invalid.");
         return;
       }
 
       recState.allRows = recNormalizeRows(rows);
+      recState.loadMode = loadMode || "";
       recRebuildFilters();
       recApplyFilters();
     }
@@ -1203,6 +1288,7 @@
       byId("recFileInput").value = "";
       recState.allRows = [];
       recState.filteredRows = [];
+      recState.loadMode = "";
       clearSelects(["recSelDataSource", "recSelPayer", "recSelPlan"]);
       ["volume", "financial", "pct"].forEach((name) => recDestroyChart(name));
       byId("recMonthlyTable").querySelector("tbody").innerHTML = "";
@@ -1214,6 +1300,7 @@
     const mapState = {
       allRows: [],
       filteredRows: [],
+      loadMode: "",
       charts: { trend: null }
     };
 
@@ -1502,16 +1589,17 @@
       });
 
       mapRenderAll();
-      mapSetStatus(`Loaded ${mapState.allRows.length.toLocaleString()} rows. Filtered to ${mapState.filteredRows.length.toLocaleString()} rows.`);
+      mapSetStatus(`Loaded ${mapState.allRows.length.toLocaleString()} rows. Filtered to ${mapState.filteredRows.length.toLocaleString()} rows.${loadModeText(mapState.loadMode)}`);
     }
 
-    function mapLoadRows(rows) {
+    function mapLoadRows(rows, loadMode) {
       if (!rows.length) {
         mapSetStatus("No data loaded. CSV is empty or invalid.");
         return;
       }
 
       mapState.allRows = mapNormalizeRows(rows);
+      mapState.loadMode = loadMode || "";
       mapRebuildFilters();
       mapApplyFilters();
     }
@@ -1521,6 +1609,7 @@
       byId("mapFileInput").value = "";
       mapState.allRows = [];
       mapState.filteredRows = [];
+      mapState.loadMode = "";
       clearSelects(["mapSelDataSource", "mapSelPayer", "mapSelPlan", "mapSelField"]);
       mapDestroyChart();
       byId("mapFieldSummaryTable").querySelector("tbody").innerHTML = "";
@@ -1537,12 +1626,16 @@
           return;
         }
         const reader = new FileReader();
-        reader.onload = (e) => recLoadRows(parseCSV(String(e.target.result || "")));
+        reader.onload = (e) => {
+          const parsed = parseModelCSV(String(e.target.result || ""), REC_MODEL_COLUMNS);
+          recLoadRows(parsed.rows, parsed.mode);
+        };
         reader.readAsText(file);
       });
 
       byId("recLoadTextBtn").addEventListener("click", () => {
-        recLoadRows(parseCSV(byId("recCsvText").value));
+        const parsed = parseModelCSV(byId("recCsvText").value, REC_MODEL_COLUMNS);
+        recLoadRows(parsed.rows, parsed.mode);
       });
 
       byId("recApplyFiltersBtn").addEventListener("click", recApplyFilters);
@@ -1564,12 +1657,16 @@
           return;
         }
         const reader = new FileReader();
-        reader.onload = (e) => mapLoadRows(parseCSV(String(e.target.result || "")));
+        reader.onload = (e) => {
+          const parsed = parseModelCSV(String(e.target.result || ""), MAP_MODEL_COLUMNS);
+          mapLoadRows(parsed.rows, parsed.mode);
+        };
         reader.readAsText(file);
       });
 
       byId("mapLoadTextBtn").addEventListener("click", () => {
-        mapLoadRows(parseCSV(byId("mapCsvText").value));
+        const parsed = parseModelCSV(byId("mapCsvText").value, MAP_MODEL_COLUMNS);
+        mapLoadRows(parsed.rows, parsed.mode);
       });
 
       byId("mapApplyFiltersBtn").addEventListener("click", mapApplyFilters);
