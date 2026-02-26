@@ -38,6 +38,27 @@ medical_claims_normalized as (
         on coalesce(mc.claim_line_start_date, mc.claim_start_date) = c.full_date
 ),
 
+enrolled_member_keys as (
+    select distinct
+        data_source,
+        payer,
+        plan_name,
+        person_id,
+        year_month_int
+    from member_months_normalized
+),
+
+enrolled_medical_claims as (
+    select mc.*
+    from medical_claims_normalized as mc
+    inner join enrolled_member_keys as em
+        on mc.data_source = em.data_source
+        and coalesce(mc.payer, '') = coalesce(em.payer, '')
+        and coalesce(mc.plan_name, '') = coalesce(em.plan_name, '')
+        and mc.person_id = em.person_id
+        and mc.year_month_int = em.year_month_int
+),
+
 month_bounds as (
     select
         data_source,
@@ -60,7 +81,7 @@ month_bounds as (
             payer,
             plan_name,
             year_month_int
-        from medical_claims_normalized
+        from enrolled_medical_claims
     ) as all_months
     group by
         data_source,
@@ -107,7 +128,7 @@ medical_claim_agg as (
         count(distinct claim_id) as claims,
         count(*) as claim_lines,
         sum(paid_amount) as paid_amount
-    from medical_claims_normalized
+    from enrolled_medical_claims
     group by
         data_source,
         payer,
@@ -122,7 +143,7 @@ claim_members as (
         plan_name,
         year_month_int,
         person_id
-    from medical_claims_normalized
+    from enrolled_medical_claims
 ),
 
 members_with_claims as (
